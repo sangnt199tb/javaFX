@@ -42,4 +42,12 @@ public class Item {
     public String showInfo() {
         return "ID: " + itemID + " | Title: " + title;
     }
+
+    public int getAmount() {
+        return 0;
+    }
+
+    public int getAvailable() {
+        return 0;
+    }
 }

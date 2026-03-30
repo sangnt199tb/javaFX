@@ -4,7 +4,7 @@ public class Library {
     private String libraryName;
     private Item[] itemList;
 
-    private int numberOfItems = 0; // ❗ bỏ static
+    private static int numberOfItems = 0; // ❗ bỏ static
     public static final int MAX_NUMBER_OF_ITEM = 100;
 
     public Library(String name) {

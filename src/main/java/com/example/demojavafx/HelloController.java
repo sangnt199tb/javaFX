@@ -3,6 +3,7 @@ package com.example.demojavafx;
 import com.example.demojavafx.model.Book;
 import com.example.demojavafx.model.Item;
 import com.example.demojavafx.model.Library;
+import com.example.demojavafx.model.Magazine;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
@@ -19,19 +20,19 @@ public class HelloController {
     private TextArea output;
 
     @FXML
-    private TableView<Book> tableView;
+    private TableView<Item> tableView;
 
     @FXML
-    private TableColumn<Book, Integer> colId;
+    private TableColumn<Item, Integer> colId;
 
     @FXML
-    private TableColumn<Book, String> colTitle;
+    private TableColumn<Item, String> colTitle;
 
     @FXML
-    private TableColumn<Book, Integer> colAmount;
+    private TableColumn<Item, Integer> colAmount;
 
     @FXML
-    private TableColumn<Book, Integer> colAvailable;
+    private TableColumn<Item, Integer> colAvailable;
 
     private Library library = new Library("Thư viện của tôi");
 
@@ -40,6 +41,21 @@ public class HelloController {
     public void initialize() {
         colId.setCellValueFactory(data ->
                 new SimpleIntegerProperty(data.getValue().getItemID()).asObject());
+
+        colAmount.setCellValueFactory(data -> {
+            Item item = data.getValue();
+
+            if (item instanceof Book) {
+                Book b = (Book) item;
+                return new SimpleIntegerProperty(b.getAmount()).asObject();
+
+            } else if (item instanceof Magazine) {
+                Magazine m = (Magazine) item;
+                return new SimpleIntegerProperty(m.getAmount()).asObject();
+            }
+
+            return new SimpleIntegerProperty(0).asObject();
+        });
 
         colTitle.setCellValueFactory(data ->
                 new SimpleStringProperty(data.getValue().getTitle()));
@@ -69,57 +85,26 @@ public class HelloController {
 
         for (int i = 0; i < library.getNumberOfItems(); i++) {
             Item item = library.getItemList()[i];
-
-            if (item instanceof Book) {
-                tableView.getItems().add((Book) item);
-            }
+            tableView.getItems().add(item); // ✅ thêm tất cả
         }
     }
 
     //Thêm sách
     @FXML
-    public void addBook() {
+    public void addItem() {
 
-        Dialog<Book> dialog = new Dialog<>();
-        dialog.setTitle("Thêm sách");
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("Sách", "Sách", "Tạp chí");
+        dialog.setTitle("Chọn loại");
+        dialog.setHeaderText("Bạn muốn thêm gì?");
 
-        ButtonType addButtonType = new ButtonType("Thêm", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(addButtonType, ButtonType.CANCEL);
+        dialog.showAndWait().ifPresent(choice -> {
 
-        // 👉 Form nhập
-        TextField txtId = new TextField();
-        txtId.setPromptText("ID");
-
-        TextField txtTitle = new TextField();
-        txtTitle.setPromptText("Tên sách");
-
-        TextField txtQty = new TextField();
-        txtQty.setPromptText("Số lượng");
-
-        VBox content = new VBox(10, txtId, txtTitle, txtQty);
-        dialog.getDialogPane().setContent(content);
-
-        // 👉 Convert result
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == addButtonType) {
-                try {
-                    int id = Integer.parseInt(txtId.getText());
-                    String title = txtTitle.getText();
-                    int qty = Integer.parseInt(txtQty.getText());
-
-                    return new Book(id, title, qty);
-                } catch (Exception e) {
-                    return null;
-                }
+            if (choice.equals("Sách")) {
+                showAddBookDialog();
+            } else {
+                showAddMagazineDialog();
             }
-            return null;
-        });
 
-        // 👉 Xử lý sau khi OK
-        dialog.showAndWait().ifPresent(book -> {
-            String result = library.addNewItem(book);
-            output.setText(result);
-            loadTable();
         });
     }
 
@@ -418,5 +403,87 @@ public class HelloController {
         library.addNewItem(new Book(12, "Lap trinh react js", 14));
         library.addNewItem(new Book(13, "Lap trinh android", 15));
         library.addNewItem(new Book(14, "Lap trinh iOS", 16));
+    }
+
+    private void showAddBookDialog() {
+        Dialog<Book> dialog = new Dialog<>();
+        dialog.setTitle("Thêm sách");
+
+        ButtonType addBtn = new ButtonType("Thêm", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(addBtn, ButtonType.CANCEL);
+
+        TextField txtId = new TextField();
+        TextField txtTitle = new TextField();
+        TextField txtQty = new TextField();
+
+        txtId.setPromptText("ID");
+        txtTitle.setPromptText("Tên sách");
+        txtQty.setPromptText("Số lượng");
+
+        VBox content = new VBox(10, txtId, txtTitle, txtQty);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == addBtn) {
+                try {
+                    return new Book(
+                            Integer.parseInt(txtId.getText()),
+                            txtTitle.getText(),
+                            Integer.parseInt(txtQty.getText())
+                    );
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(book -> {
+            output.setText(library.addNewItem(book));
+            loadTable();
+        });
+    }
+
+    private void showAddMagazineDialog() {
+
+        Dialog<Magazine> dialog = new Dialog<>();
+        dialog.setTitle("Thêm tạp chí");
+
+        ButtonType addBtn = new ButtonType("Thêm", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(addBtn, ButtonType.CANCEL);
+
+        TextField txtId = new TextField();
+        TextField txtTitle = new TextField();
+        TextField txtIssue = new TextField();
+        TextField txtQty = new TextField();
+
+        txtId.setPromptText("ID");
+        txtTitle.setPromptText("Tên tạp chí");
+        txtIssue.setPromptText("Số phát hành");
+        txtQty.setPromptText("Số lượng");
+
+        VBox content = new VBox(10, txtId, txtTitle, txtIssue, txtQty);
+        dialog.getDialogPane().setContent(content);
+
+        dialog.setResultConverter(btn -> {
+            if (btn == addBtn) {
+                try {
+                    return new Magazine(
+                            Integer.parseInt(txtId.getText()),
+                            txtTitle.getText(),
+                            Integer.parseInt(txtIssue.getText()),
+                            Integer.parseInt(txtQty.getText())
+                    );
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        dialog.showAndWait().ifPresent(mag -> {
+            output.setText(library.addNewItem(mag));
+            loadTable();
+        });
     }
 }
