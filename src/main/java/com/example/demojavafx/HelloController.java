@@ -34,6 +34,9 @@ public class HelloController {
     @FXML
     private TableColumn<Item, Integer> colAvailable;
 
+    @FXML
+    private TableColumn<Item, String> colType;
+
     private Library library = new Library("Thư viện của tôi");
 
     // ✅ Khởi tạo TableView
@@ -66,10 +69,19 @@ public class HelloController {
         colAvailable.setCellValueFactory(data ->
                 new SimpleIntegerProperty(data.getValue().getAvailable()).asObject());
 
+        colType.setCellValueFactory(data -> {
+            if (data.getValue() instanceof Book) {
+                return new SimpleStringProperty("Sách");
+            } else {
+                return new SimpleStringProperty("Tạp chí");
+            }
+        });
+
         // 👉 Căn giữa cho các cột số
         colId.setStyle("-fx-alignment: CENTER;");
         colAmount.setStyle("-fx-alignment: CENTER;");
         colAvailable.setStyle("-fx-alignment: CENTER;");
+        colType.setStyle("-fx-alignment: CENTER;");
 
         //mock dữ liệu
         mockData();
@@ -92,94 +104,26 @@ public class HelloController {
     //Thêm sách
     @FXML
     public void addItem() {
-
         ChoiceDialog<String> dialog = new ChoiceDialog<>("Sách", "Sách", "Tạp chí");
         dialog.setTitle("Chọn loại");
         dialog.setHeaderText("Bạn muốn thêm gì?");
-
         dialog.showAndWait().ifPresent(choice -> {
-
             if (choice.equals("Sách")) {
                 showAddBookDialog();
             } else {
                 showAddMagazineDialog();
             }
-
         });
     }
 
     //Tìm sách
     @FXML
-    public void findBook() {
-
+    public void findItem() {
         Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("Tìm sách");
-
+        dialog.setTitle("Tìm tài liệu");
         ButtonType searchBtn = new ButtonType("Tìm", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(searchBtn, ButtonType.CANCEL);
-
-        // 👉 chọn kiểu tìm
-        RadioButton rbId = new RadioButton("Theo ID");
-        RadioButton rbName = new RadioButton("Theo tên");
-        ToggleGroup group = new ToggleGroup();
-        rbId.setToggleGroup(group);
-        rbName.setToggleGroup(group);
-        rbName.setSelected(true); // mặc định
-
-        TextField txtInput = new TextField();
-        txtInput.setPromptText("Nhập dữ liệu");
-
-        VBox content = new VBox(10, rbId, rbName, txtInput);
-        dialog.getDialogPane().setContent(content);
-
-        dialog.setResultConverter(btn -> btn == searchBtn ? null : null);
-
-        dialog.showAndWait();
-
-        if (dialog.getResult() != null || true) { // xử lý luôn
-            String result = "";
-
-            if (rbId.isSelected()) {
-                try {
-                    int id = Integer.parseInt(txtInput.getText());
-                    Item item = library.findItem(id);
-
-                    if (item instanceof Book) {
-                        result = ((Book) item).showInfo();
-                    }
-                } catch (Exception e) {
-                    result = "ID không hợp lệ!";
-                }
-            } else {
-                String name = txtInput.getText();
-
-                for (int i = 0; i < library.getNumberOfItems(); i++) {
-                    Item item = library.getItemList()[i];
-
-                    if (item instanceof Book) {
-                        Book b = (Book) item;
-                        if (b.getTitle().toLowerCase().contains(name.toLowerCase())) {
-                            result += b.showInfo() + "\n";
-                        }
-                    }
-                }
-            }
-
-            output.setText(result.isEmpty() ? "Không tìm thấy!" : result);
-        }
-    }
-
-    //Mượn sách
-    @FXML
-    public void borrowBook() {
-
-        Dialog<Book> dialog = new Dialog<>();
-        dialog.setTitle("Mượn sách");
-
-        ButtonType borrowBtn = new ButtonType("Mượn", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(borrowBtn, ButtonType.CANCEL);
-
-        // 👉 chọn kiểu tìm
+        // chọn kiểu tìm
         RadioButton rbId = new RadioButton("Theo ID");
         RadioButton rbName = new RadioButton("Theo tên");
         ToggleGroup group = new ToggleGroup();
@@ -190,27 +134,77 @@ public class HelloController {
         TextField txtInput = new TextField();
         txtInput.setPromptText("Nhập dữ liệu");
 
+        VBox content = new VBox(10, rbId, rbName, txtInput);
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
+        String result = "";
+
+        if (rbId.isSelected()) {
+            try {
+                int id = Integer.parseInt(txtInput.getText());
+                Item item = library.findItem(id);
+
+                if (item != null) {
+                    result = item.showInfo(); // ✅ không cần instanceof
+                }
+            } catch (Exception e) {
+                result = "ID không hợp lệ!";
+            }
+        } else {
+            String name = txtInput.getText();
+            for (int i = 0; i < library.getNumberOfItems(); i++) {
+                Item item = library.getItemList()[i];
+                if (item.getTitle().toLowerCase().contains(name.toLowerCase())) {
+                    result += item.showInfo() + "\n"; // ✅ áp dụng cho cả Book & Magazine
+                }
+            }
+        }
+        output.setText(result.isEmpty() ? "Không tìm thấy!" : result);
+    }
+
+    //Mượn sách
+    @FXML
+    public void borrowBook() {
+
+        Dialog<Item> dialog = new Dialog<>();
+        dialog.setTitle("Mượn tài liệu");
+
+        ButtonType borrowBtn = new ButtonType("Mượn", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(borrowBtn, ButtonType.CANCEL);
+
+        // 👉 chọn kiểu tìm
+        RadioButton rbId = new RadioButton("Theo ID");
+        RadioButton rbName = new RadioButton("Theo tên");
+
+        ToggleGroup group = new ToggleGroup();
+        rbId.setToggleGroup(group);
+        rbName.setToggleGroup(group);
+        rbName.setSelected(true);
+
+        TextField txtInput = new TextField();
+        txtInput.setPromptText("Nhập dữ liệu");
+
         Button btnSearch = new Button("Tìm");
 
-        // 👉 bảng kết quả
-        TableView<Book> table = new TableView<>();
+        // 👉 bảng kết quả (DÙNG ITEM)
+        TableView<Item> table = new TableView<>();
 
-        TableColumn<Book, Integer> cId = new TableColumn<>("ID");
+        TableColumn<Item, Integer> cId = new TableColumn<>("ID");
         cId.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleIntegerProperty(data.getValue().getItemID()).asObject());
 
-        TableColumn<Book, String> cTitle = new TableColumn<>("Tên");
+        TableColumn<Item, String> cTitle = new TableColumn<>("Tên");
         cTitle.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleStringProperty(data.getValue().getTitle()));
 
-        TableColumn<Book, Integer> cAvailable = new TableColumn<>("Còn");
+        TableColumn<Item, Integer> cAvailable = new TableColumn<>("Còn");
         cAvailable.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleIntegerProperty(data.getValue().getAvailable()).asObject());
 
         table.getColumns().addAll(cId, cTitle, cAvailable);
         table.setPrefHeight(200);
 
-        // 👉 search action
+        // 👉 search (KHÔNG dùng instanceof Book)
         btnSearch.setOnAction(e -> {
             table.getItems().clear();
 
@@ -219,8 +213,8 @@ public class HelloController {
                     int id = Integer.parseInt(txtInput.getText());
                     Item item = library.findItem(id);
 
-                    if (item instanceof Book) {
-                        table.getItems().add((Book) item);
+                    if (item != null) {
+                        table.getItems().add(item); // ✅ add luôn
                     }
                 } catch (Exception ex) {
                     output.setText("ID không hợp lệ!");
@@ -231,12 +225,8 @@ public class HelloController {
                 for (int i = 0; i < library.getNumberOfItems(); i++) {
                     Item item = library.getItemList()[i];
 
-                    if (item instanceof Book) {
-                        Book b = (Book) item;
-
-                        if (b.getTitle().toLowerCase().contains(name.toLowerCase())) {
-                            table.getItems().add(b);
-                        }
+                    if (item.getTitle().toLowerCase().contains(name.toLowerCase())) {
+                        table.getItems().add(item); // ✅ cả Book + Magazine
                     }
                 }
             }
@@ -251,7 +241,15 @@ public class HelloController {
 
         dialog.getDialogPane().setContent(content);
 
-        // 👉 trả về sách được chọn
+        // 👉 disable nút mượn nếu chưa chọn
+        Node borrowButton = dialog.getDialogPane().lookupButton(borrowBtn);
+        borrowButton.setDisable(true);
+
+        table.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            borrowButton.setDisable(newVal == null);
+        });
+
+        // 👉 trả về Item
         dialog.setResultConverter(btn -> {
             if (btn == borrowBtn) {
                 return table.getSelectionModel().getSelectedItem();
@@ -259,14 +257,14 @@ public class HelloController {
             return null;
         });
 
-        // 👉 xử lý sau khi chọn
-        dialog.showAndWait().ifPresent(book -> {
-            if (book != null) {
-                String result = book.borrowItem();
+        // 👉 xử lý mượn (đa hình)
+        dialog.showAndWait().ifPresent(item -> {
+            if (item != null) {
+                String result = item.borrowItem(); // ✅ chạy đúng loại
                 output.setText(result);
                 loadTable();
             } else {
-                output.setText("Bạn chưa chọn sách!");
+                output.setText("Bạn chưa chọn!");
             }
         });
     }
@@ -275,8 +273,8 @@ public class HelloController {
     @FXML
     public void returnBook() {
 
-        Dialog<Book> dialog = new Dialog<>();
-        dialog.setTitle("Trả sách");
+        Dialog<Item> dialog = new Dialog<>();
+        dialog.setTitle("Trả tài liệu");
 
         ButtonType returnBtn = new ButtonType("Trả", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(returnBtn, ButtonType.CANCEL);
@@ -284,6 +282,7 @@ public class HelloController {
         // 👉 chọn kiểu tìm
         RadioButton rbId = new RadioButton("Theo ID");
         RadioButton rbName = new RadioButton("Theo tên");
+
         ToggleGroup group = new ToggleGroup();
         rbId.setToggleGroup(group);
         rbName.setToggleGroup(group);
@@ -294,25 +293,25 @@ public class HelloController {
 
         Button btnSearch = new Button("Tìm");
 
-        // 👉 bảng kết quả
-        TableView<Book> table = new TableView<>();
+        // 👉 bảng kết quả (CHUYỂN SANG ITEM)
+        TableView<Item> table = new TableView<>();
 
-        TableColumn<Book, Integer> cId = new TableColumn<>("ID");
+        TableColumn<Item, Integer> cId = new TableColumn<>("ID");
         cId.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleIntegerProperty(data.getValue().getItemID()).asObject());
 
-        TableColumn<Book, String> cTitle = new TableColumn<>("Tên");
+        TableColumn<Item, String> cTitle = new TableColumn<>("Tên");
         cTitle.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleStringProperty(data.getValue().getTitle()));
 
-        TableColumn<Book, Integer> cAvailable = new TableColumn<>("Còn");
+        TableColumn<Item, Integer> cAvailable = new TableColumn<>("Còn");
         cAvailable.setCellValueFactory(data ->
                 new javafx.beans.property.SimpleIntegerProperty(data.getValue().getAvailable()).asObject());
 
         table.getColumns().addAll(cId, cTitle, cAvailable);
         table.setPrefHeight(200);
 
-        // 👉 search
+        // 👉 search (BỎ instanceof Book)
         btnSearch.setOnAction(e -> {
             table.getItems().clear();
 
@@ -321,8 +320,8 @@ public class HelloController {
                     int id = Integer.parseInt(txtInput.getText());
                     Item item = library.findItem(id);
 
-                    if (item instanceof Book) {
-                        table.getItems().add((Book) item);
+                    if (item != null) {
+                        table.getItems().add(item); // ✅ add trực tiếp
                     }
                 } catch (Exception ex) {
                     output.setText("ID không hợp lệ!");
@@ -333,12 +332,8 @@ public class HelloController {
                 for (int i = 0; i < library.getNumberOfItems(); i++) {
                     Item item = library.getItemList()[i];
 
-                    if (item instanceof Book) {
-                        Book b = (Book) item;
-
-                        if (b.getTitle().toLowerCase().contains(name.toLowerCase())) {
-                            table.getItems().add(b);
-                        }
+                    if (item.getTitle().toLowerCase().contains(name.toLowerCase())) {
+                        table.getItems().add(item); // ✅ add tất cả loại
                     }
                 }
             }
@@ -361,7 +356,7 @@ public class HelloController {
             returnButton.setDisable(newVal == null);
         });
 
-        // 👉 trả về sách được chọn
+        // 👉 trả về Item (KHÔNG phải Book)
         dialog.setResultConverter(btn -> {
             if (btn == returnBtn) {
                 return table.getSelectionModel().getSelectedItem();
@@ -369,14 +364,14 @@ public class HelloController {
             return null;
         });
 
-        // 👉 xử lý sau khi chọn
-        dialog.showAndWait().ifPresent(book -> {
-            if (book != null) {
-                String result = book.returnItem();
+        // 👉 xử lý trả (đa hình)
+        dialog.showAndWait().ifPresent(item -> {
+            if (item != null) {
+                String result = item.returnItem(); // ✅ chạy đúng Book/Magazine
                 output.setText(result);
-                loadTable(); // cập nhật bảng
+                loadTable();
             } else {
-                output.setText("Bạn chưa chọn sách!");
+                output.setText("Bạn chưa chọn!");
             }
         });
     }
@@ -389,20 +384,25 @@ public class HelloController {
     }
 
     private void mockData() {
+
+        // ===== BOOK =====
         library.addNewItem(new Book(1, "Java Core", 10));
         library.addNewItem(new Book(2, "OOP", 8));
         library.addNewItem(new Book(3, "Data Structure", 5));
-        library.addNewItem(new Book(4, "Lap trinh c", 7));
-        library.addNewItem(new Book(5, "Lap trinh c#", 7));
-        library.addNewItem(new Book(6, "Lap trinh c++", 8));
-        library.addNewItem(new Book(7, "Lap trinh python", 9));
-        library.addNewItem(new Book(8, "Lap trinh html", 10));
-        library.addNewItem(new Book(9, "Lap trinh css", 11));
-        library.addNewItem(new Book(10, "Lap trinh js", 12));
-        library.addNewItem(new Book(11, "Lap trinh angular", 13));
-        library.addNewItem(new Book(12, "Lap trinh react js", 14));
-        library.addNewItem(new Book(13, "Lap trinh android", 15));
-        library.addNewItem(new Book(14, "Lap trinh iOS", 16));
+        library.addNewItem(new Book(4, "Lap trinh C", 7));
+        library.addNewItem(new Book(5, "Lap trinh C#", 7));
+        library.addNewItem(new Book(6, "Lap trinh C++", 8));
+        library.addNewItem(new Book(7, "Lap trinh Python", 9));
+        library.addNewItem(new Book(8, "Lap trinh HTML", 10));
+        library.addNewItem(new Book(9, "Lap trinh CSS", 11));
+        library.addNewItem(new Book(10, "Lap trinh JS", 12));
+
+        // ===== MAGAZINE =====
+        library.addNewItem(new Magazine(101, "IT Weekly", 1, 5));
+        library.addNewItem(new Magazine(102, "Tech Today", 2, 6));
+        library.addNewItem(new Magazine(103, "AI Magazine", 3, 4));
+        library.addNewItem(new Magazine(104, "Dev Life", 4, 7));
+        library.addNewItem(new Magazine(105, "Startup World", 5, 3));
     }
 
     private void showAddBookDialog() {

@@ -11,9 +11,8 @@
 
     <!-- TOOLBAR -->
     <HBox spacing="10" alignment="CENTER">
-        <Button text="Load danh sách" onAction="#loadTable"/>
-        <Button text="Thêm sách" onAction="#addBook"/>
-        <Button text="Tìm sách" onAction="#findBook"/>
+        <Button text="Thêm sách" onAction="#addItem"/>
+        <Button text="Tìm sách" onAction="#findItem"/>
         <Button text="Mượn sách" onAction="#borrowBook"/>
         <Button text="Trả sách" onAction="#returnBook"/>
     </HBox>
@@ -22,10 +21,11 @@
     <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
 
         <columns>
-            <TableColumn fx:id="colId" text="ID" prefWidth="100"/>
-            <TableColumn fx:id="colTitle" text="Tên sách" prefWidth="300"/>
-            <TableColumn fx:id="colAmount" text="Tổng" prefWidth="100"/>
-            <TableColumn fx:id="colAvailable" text="Còn lại" prefWidth="100"/>
+            <TableColumn fx:id="colId" text="ID"/>
+            <TableColumn fx:id="colTitle" text="Tên sách"/>
+            <TableColumn fx:id="colAmount" text="Tổng"/>
+            <TableColumn fx:id="colAvailable" text="Còn lại"/>
+            <TableColumn fx:id="colType" text="Loại" prefWidth="120"/>
         </columns>
 
     </TableView>
